@@ -1,0 +1,87 @@
+---
+output: html_document
+---
+
+#Summary
+
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self-movement  a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, the goal is to use data from accelerometers on the belt, forearm, arm, and dumbbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways:
+* Exactly according to the specification (Class A)
+* Throwing the elbows to the front (Class B) 
+* Lifting the dumbbell only halfway (Class C) 
+* Lowering the dumbbell only halfway (Class D)
+* Throwing the hips to the front (Class E) 
+
+Class A corresponds to the specified execution of the exercise, while the other 4 classes correspond to common mistakes. 
+
+In this project, the goal is to use data from accelerometers on the **belt, forearm, arm, and dumbbell** of 6 participants and predict the class type for the given testing data.  In general this would help people to quantify how well they do their exercise.
+
+#Loading Data
+
+-	Loading the training, test data:
+
+
+```{r}
+setwd('C:/Shahrzad_Docs/PERSONAL_DOCUMENTS/COURSERA/Machine_learning')
+training_dat<- read.csv(file="pml-training.csv", header=TRUE, sep=',', na.strings = c("NA", "#DIV/0!"))
+
+testing_dat <- read.csv(file="pml-testing.csv", header=TRUE, sep=',', na.strings = c("NA", "#DIV/0!")) 
+str(training_dat)
+
+```
+#Data Cleansing
+
+Keeping only the columns related to: belt, forearm, arm, and dumbbell so removing the first 7 columns.
+
+```{r}
+training_dat1<-training_dat[,c(8:160)]
+str(training_dat1)
+testing_dat1<-testing_dat[,c(8:160)]
+
+```
+
+#Removing the columns that have more than 90% NA.
+
+```{r}
+training_dat2 <- training_dat1[ lapply( training_dat1, function(x) sum(is.na(x)) / length(x) ) < 0.1 ]
+str(training_dat2)
+testing_dat2 <- testing_dat1[ lapply( testing_dat1, function(x) sum(is.na(x)) / length(x) ) < 0.1 ]
+
+```
+
+#Training and Cross Validation sets
+
+We allocate 75% in training set and 25% in cross validation set
+
+```{r}
+set.seed(12345)
+library(caret)
+intrain <-createDataPartition(training_dat2$classe, p=0.75,list=FALSE)
+training = training_dat2 [intrain,]
+crossvalidation = training_dat2 [-intrain,]
+
+```
+#Prediction using Random Forests Model
+Here we train the model using random forest function:
+
+```{r}
+library(randomForest)
+ModelFit = randomForest(classe~., data= training)
+prediction <- predict(ModelFit, crossvalidation, type = "class")
+confusionMatrix(prediction, crossvalidation $classe)
+
+```
+
+This shows that predicting using random forest has 99.66% accuracy and the out-of-sample error is 100%-99.66%= 0.34%. Therefore this is a good Model. 
+
+```{r, echo=FALSE}
+plot(ModelFit)
+```
+
+The above graph also shows that for the default number of trees (500) the error is less than 1%.
+
+#Applying the machine learning algorithm to the given test cases: 
+
+```{r}
+prediction <- predict(ModelFit, testing_dat2, type = "class")
+prediction
+```
